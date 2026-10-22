@@ -24,6 +24,10 @@
     "paseo.agent.js",
     "icon.svg"
   ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
   "magpie": {
     "agent": "./paseo.agent.js",
     "icon": "./icon.svg"
