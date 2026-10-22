@@ -1,5 +1,7 @@
 # Magpie for Paseo
 
+[English](README.md) · [简体中文](README.zh-CN.md)
+
 [![npm version](https://img.shields.io/npm/v/magpie-agent-paseo.svg?style=flat-square)](https://www.npmjs.com/package/magpie-agent-paseo)
 [![license](https://img.shields.io/github/license/anyaoqi/magpie-agent-paseo.svg?style=flat-square)](https://github.com/anyaoqi/magpie-agent-paseo/blob/main/LICENSE)
 
