@@ -1,55 +1,63 @@
-# Magpie for Paseo
+<p align="center">
+  <img src="icon.svg" width="72" height="72" alt="Paseo Logo" />
+</p>
 
-[English](README.md) · [简体中文](README.zh-CN.md)
+<h1 align="center">Magpie for Paseo</h1>
 
-[![npm version](https://img.shields.io/npm/v/magpie-agent-paseo.svg?style=flat-square)](https://www.npmjs.com/package/magpie-agent-paseo)
-[![license](https://img.shields.io/github/license/anyaoqi/magpie-agent-paseo.svg?style=flat-square)](https://github.com/anyaoqi/magpie-agent-paseo/blob/main/LICENSE)
+<p align="center">
+  <a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a>
+</p>
 
-这是一个 Magpie Agent 插件，为 Paseo 添加 **Magpie** 提供商支持。Paseo 继续使用 OpenCode 作为其编码 Agent 运行时；OpenCode 会将所有模型请求转发至本地 Magpie 网关。
+<p align="center">
+  <a href="https://www.npmjs.com/package/magpie-agent-paseo"><img src="https://img.shields.io/npm/v/magpie-agent-paseo.svg?style=flat-square" alt="npm version" /></a>
+  <a href="https://github.com/anyaoqi/magpie-agent-paseo/blob/main/LICENSE"><img src="https://img.shields.io/github/license/anyaoqi/magpie-agent-paseo.svg?style=flat-square" alt="license" /></a>
+</p>
+
+这是一个 Magpie Agent 插件，为 Paseo 接入 **Magpie** 提供商支持，让 Paseo 可以无缝调用 Magpie 本地网关提供的所有大语言模型服务。
+
+## 特性亮点
+
+- **自动同步**：Magpie 可用模型（包括多账号/聚合路由组）自动发布至 Paseo 的模型选择器中。
+- **思考强度映射**：自动识别各模型的推理档位（Thinking options），在 Paseo 中精准提供原生支持的思考强度。
+- **无破坏还原**：关闭该 Agent 时，Magpie 自动将 Paseo 配置恢复原样，绝不破坏用户现有的其他配置项。
+- **专属凭据**：自动为 Paseo 分配独立的网关通信通信凭据，便于在 Magpie 用量面板单独追踪。
+
+---
 
 ## 环境要求
 
-- 本地已启动 Magpie 及其本地网关
-- 运行 Paseo 的设备上已安装 Paseo 及 OpenCode CLI
+- 本地已安装并启动 [Magpie](https://usemagpie.ai)
+- 运行环境已安装并配置好 [Paseo](https://paseo.sh)
 - Paseo 守护进程（daemon）与 Magpie 运行在同一个操作系统用户下
-- `paseo` 命令已添加到 Magpie 所能识别的 `PATH` 环境变量中
+- `paseo` 命令位于当前用户的 `PATH` 环境变量中
+
+---
 
 ## 安装到 Magpie
 
-从 npm 安装：
+### 1. 安装插件
 
 ```sh
 magpie plugin add magpie-agent-paseo
 ```
 
-或直接从 GitHub 安装：
+### 2. 启用 Agent
 
-```sh
-magpie plugin add anyaoqi/magpie-agent-paseo
-```
+在 Magpie 的 **Agents**（智能体）页面中找到 **Paseo** 并打开开关。
 
-或从本地开发目录安装：
+### 3. 重载配置并在 Paseo 中使用
 
-```sh
-magpie plugin add .
-```
-
-在 Magpie 的 **Agents**（智能体）页面开启 **Paseo**。该插件作为服务开关，负责将 Magpie 当前可用的模型列表发布到 Paseo 中，以便你在 Paseo 启动 Agent 时直接选用。
-
-开启或关闭后，在终端中重新加载 Paseo 的提供商配置：
+在终端中重载 Paseo 配置：
 
 ```sh
 paseo reload
 ```
 
-然后在 Paseo 中选择 **Magpie** 作为提供商。模型列表将展示 Magpie 当前提供的所有模型，并替换继承的 OpenCode 列表，避免与本地无关的 OpenCode 模型混杂。Paseo 会原样展示每个模型的 Magpie 显示名称。内部模型 ID 会自动带有 OpenCode 路由所需的 `magpie-gateway/` 命名空间。
+随后在 Paseo 启动会话时，选择 **Magpie** 作为提供商，即可直接选用来自 Magpie 网关的所有模型。
 
-可用的第一个 Magpie 模型会被自动设为提供商默认项。每个模型的推理档位（Thinking options）也会自动声明为 OpenCode 的变体，Paseo 仅会提供该模型原生支持的思考强度。
+---
 
-## 插件改动说明
+## 运作机制说明
 
-该插件会自动管理 `~/.paseo/config.json`，添加或更新 `agents.providers.magpie-opencode` 配置项。Paseo 启动现有的 OpenCode 提供商时，会注入 `OPENCODE_CONFIG_CONTENT` 覆盖项，该覆盖项注册了 Magpie 的 OpenAI 兼容网关地址及当前模型列表，并停用 OpenRouter。Magpie 为 Paseo 分配了专属的网关通信 Key。Paseo 的其他配置均完整保留；当在 Magpie 中关闭该 Agent 时，Magpie 会自动恢复原有的配置项。
-
-如需使用非默认的 Paseo 配置路径，可修改 `paseo.agent.js` 中的 `config` 字段。Magpie 会自动展开路径中的 `~` 和环境变量；例如在 Magpie 环境中已设置 `PASEO_HOME` 时，可填写 `"$PASEO_HOME/config.json"`。
-
-网关通信 Key 保存在 Paseo 本地配置的 OpenCode 运行时配置中。所有的推理请求均从 OpenCode 发往本地 Magpie 网关（默认 `127.0.0.1:3425`），再由 Magpie 路由至所选的上游提供商。
+- **配置文件管理**：该插件会自动读取并更新 `~/.paseo/config.json` 中的提供商配置项。若配置了 `PASEO_HOME` 环境变量，Magpie 会自动解析对应的目标路径。
+- **网关路由通信**：所有的模型推理请求由 Paseo 发往 Magpie 本地网关（默认 `127.0.0.1:3425`），再由 Magpie 统一调度并安全路由至实际的上游提供商。
