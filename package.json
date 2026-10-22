@@ -1,0 +1,31 @@
+{
+  "name": "magpie-agent-paseo",
+  "version": "0.1.0",
+  "description": "Use Magpie models in Paseo through its OpenCode provider",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anyaoqi/magpie-agent-paseo.git"
+  },
+  "homepage": "https://github.com/anyaoqi/magpie-agent-paseo#readme",
+  "bugs": {
+    "url": "https://github.com/anyaoqi/magpie-agent-paseo/issues"
+  },
+  "keywords": [
+    "magpie",
+    "magpie-plugin",
+    "magpie-agent",
+    "opencode",
+    "opencode-plugin",
+    "paseo"
+  ],
+  "files": [
+    "paseo.agent.js",
+    "icon.svg"
+  ],
+  "magpie": {
+    "agent": "./paseo.agent.js",
+    "icon": "./icon.svg"
+  }
+}
