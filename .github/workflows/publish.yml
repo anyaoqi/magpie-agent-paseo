@@ -1,19 +1,27 @@
 name: Publish
 
+# 触发方式：
+#   1. 合并 PR 到 main（push）→ 自动升 patch 版本并发布
+#   2. 手动打 v* tag → 使用 package.json 中的版本发布
+#   3. workflow_dispatch → 手动触发，自动升 patch 版本
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
   workflow_dispatch:
 
 permissions:
-  contents: read
-  id-token: write   # npm Trusted Publishing (OIDC)
-  packages: write   # GitHub Packages
+  contents: write    # 需要写回递增后的版本号
+  id-token: write    # npm Trusted Publishing (OIDC)
+  packages: write    # GitHub Packages
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # 避免 workflow 自己提交版本号造成的无限循环
+    if: github.actor != 'github-actions[bot]'
     steps:
       - uses: actions/checkout@v4
 
@@ -26,7 +34,7 @@ jobs:
       - name: Ensure npm CLI version
         run: npm install -g npm@latest
 
-      # 打 tag 发布时，校验 tag 版本与 package.json 一致，防止发错版本
+      # 打 tag 发布时，校验 tag 版本与 package.json 一致
       - name: Verify tag matches package version
         if: startsWith(github.ref, 'refs/tags/')
         run: |
@@ -36,6 +44,23 @@ jobs:
             echo "::error::Tag version ($tag_version) does not match package.json version ($pkg_version)"
             exit 1
           fi
+
+      # push 到 main 时：基于 npmjs 已发布的最新版本，自动递增 patch
+      - name: Bump patch version
+        id: bump
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        run: |
+          published=$(npm view magpie-agent-paseo version --registry=https://registry.npmjs.org 2>/dev/null || echo "0.0.0")
+          current=$(node -p "require('./package.json').version")
+          # 取已发布版本与当前版本中较大的一个，避免回退
+          base=$(printf '%s\n%s\n' "$published" "$current" | sort -V | tail -1)
+          major=$(echo "$base" | cut -d. -f1)
+          minor=$(echo "$base" | cut -d. -f2)
+          patch=$(echo "$base" | cut -d. -f3)
+          next="${major}.${minor}.$((patch + 1))"
+          npm pkg set version="$next"
+          echo "version=$next" >> "$GITHUB_OUTPUT"
+          echo "Bumped version: $base -> $next"
 
       # 发布前预览打包内容
       - name: Preview package contents
@@ -50,7 +75,25 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          cp package.json /tmp/package.json.orig
           npm config set //npm.pkg.github.com/:_authToken="$NODE_AUTH_TOKEN"
           npm pkg set name=@anyaoqi/magpie-agent-paseo
           npm pkg set publishConfig.registry=https://npm.pkg.github.com
           npm publish --access public
+          cp /tmp/package.json.orig package.json
+
+      # 将递增后的版本号写回仓库（仅为本地修改，不触发新的发布）
+      - name: Commit bumped version
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        env:
+          NEXT_VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B main origin/main
+          # 把递增后的版本应用到最新的 main，避免覆盖 PR 合并后的其他改动
+          npm pkg set version="$NEXT_VERSION"
+          git add package.json
+          git diff --staged --quiet || git commit -m "chore: bump version to $NEXT_VERSION [skip ci]"
+          git push origin main
