@@ -39,8 +39,11 @@ jobs:
         run: |
           published=$(npm view magpie-agent-paseo version --registry=https://registry.npmjs.org 2>/dev/null || echo "0.0.0")
           current=$(node -p "require('./package.json').version")
-          # 取已发布版本与当前版本中较大的一个，避免回退
-          base=$(printf '%s\n%s\n' "$published" "$current" | sort -V | tail -1)
+          # 同时参考本地 tag，避免 npm registry 同步延迟导致重复发布
+          latest_tag=$(git tag --list 'v*' --sort=-v:refname | head -1 | sed 's/^v//')
+          [ -z "$latest_tag" ] && latest_tag="0.0.0"
+          # 取所有来源中最大的版本，避免回退或重复
+          base=$(printf '%s\n%s\n%s\n' "$published" "$current" "$latest_tag" | sort -V | tail -1)
           major=$(echo "$base" | cut -d. -f1)
           minor=$(echo "$base" | cut -d. -f2)
           patch=$(echo "$base" | cut -d. -f3)
