@@ -1,6 +1,6 @@
 {
   "name": "magpie-agent-paseo",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Use Magpie models in Paseo",
   "type": "module",
   "license": "MIT",
