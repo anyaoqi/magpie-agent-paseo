@@ -43,7 +43,7 @@ magpie plugin add magpie-agent-paseo
 
 ### 2. 启用 Agent
 
-在 Magpie 的 **Agents**（智能体）页面中找到 **Paseo** 并打开开关。
+在 Magpie 的 **Agents**（智能体）页面中找到 **Paseo (Magpie)** 并打开开关。
 
 ### 3. 重载配置并在 Paseo 中使用
 
