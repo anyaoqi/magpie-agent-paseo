@@ -1,0 +1,56 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write   # npm Trusted Publishing (OIDC)
+  packages: write   # GitHub Packages
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      # Trusted Publishing 需要 npm CLI >= 11.5.1 / Node >= 22.14
+      - name: Ensure npm CLI version
+        run: npm install -g npm@latest
+
+      # 打 tag 发布时，校验 tag 版本与 package.json 一致，防止发错版本
+      - name: Verify tag matches package version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          pkg_version=$(node -p "require('./package.json').version")
+          tag_version="${GITHUB_REF_NAME#v}"
+          if [ "$pkg_version" != "$tag_version" ]; then
+            echo "::error::Tag version ($tag_version) does not match package.json version ($pkg_version)"
+            exit 1
+          fi
+
+      # 发布前预览打包内容
+      - name: Preview package contents
+        run: npm pack --dry-run
+
+      # 1) 发布到 npmjs —— 使用 Trusted Publishing，无需 token/OTP
+      - name: Publish to npmjs
+        run: npm publish
+
+      # 2) 发布到 GitHub Packages —— 只支持 scoped 包名，需临时改名
+      - name: Publish to GitHub Packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm config set //npm.pkg.github.com/:_authToken="$NODE_AUTH_TOKEN"
+          npm pkg set name=@anyaoqi/magpie-agent-paseo
+          npm pkg set publishConfig.registry=https://npm.pkg.github.com
+          npm publish --access public
